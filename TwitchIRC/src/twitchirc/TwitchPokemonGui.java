@@ -273,8 +273,7 @@ public class TwitchPokemonGui extends JFrame{
 					irc.setPrinter(new ThreadedPrinting() {			
 						@Override
 						public void handleLine(String line) {
-							if (line.contains(user.getText()))
-								addLine(line);
+							addLine(line);
 						}
 						
 						@Override
