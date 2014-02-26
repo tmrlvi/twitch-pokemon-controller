@@ -1,7 +1,11 @@
-package twitchirc;
+package twitchirc.queues;
 
 import java.util.ArrayList;
 
+/**
+ * Queues commands and sends them in order
+ * @author tmrlvi
+ */
 public class DirectCommands implements CommandQueue {
 	ArrayList<String> commands;
 	

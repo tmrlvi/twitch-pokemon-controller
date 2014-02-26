@@ -1,16 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package twitchirc;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
 /**
- *
+ * Handles the output of the socket
  * @author tmrlvi
  */
 public abstract class ThreadedPrinting extends Thread {
@@ -37,7 +31,16 @@ public abstract class ThreadedPrinting extends Thread {
         }
     }
     
+    /**
+     * Will be called when a new line is processed
+     * @param line
+     */
     public abstract void handleLine(String line);
+    
+    /**
+     * Will be called upon and error in reading the buffer
+     * @param ex - the exception
+     */
     public abstract void handleError(Exception ex);
     
 }

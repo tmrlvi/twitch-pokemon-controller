@@ -1,9 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package twitchirc;
 
 import java.io.BufferedReader;
@@ -14,7 +8,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 /**
- *
+ * A twitch IRC client. Before running, must set a printer.
+ * Checks for not sending too many messages, return the output to a printer.
  * @author tmrlvi
  */
 public class TwitchIRC {
@@ -28,10 +23,20 @@ public class TwitchIRC {
         
     }
     
+    /**
+     * Sets the printer object
+     * @param printer - a thread that handles the irc output (i.e. print to stdout)
+     */
     public void setPrinter(ThreadedPrinting printer){
     	this.printer = printer;
     }
     
+    /**
+     * Connecting the the server. Must be called after setPrinter
+     * @param addr - the host address
+     * @param port - the host port
+     * @throws IOException - Connection problem, or no printer to output to.
+     */
     public void connect(String addr, int port) throws IOException {
     	if (printer == null)
     		throw new IOException("Output is not set. (Did you call setPrinter?)");
@@ -42,6 +47,10 @@ public class TwitchIRC {
     	printer.start();
     }
     
+    /**
+     * Safely closes the connection
+     * @throws IOException
+     */
     public void close() throws IOException{
         printer.interrupt();
         socket.close();
@@ -52,6 +61,7 @@ public class TwitchIRC {
         close();
     }
     
+    // Checks if passed the time limit for messages
     private boolean canSend(){
         long cur_time = System.currentTimeMillis();
         ArrayList<Long> new_commands = new ArrayList<Long>();
@@ -67,6 +77,11 @@ public class TwitchIRC {
         return true;
     }
     
+    /**
+     * IRC login command
+     * @param user - the user name
+     * @param oauth - the twitch oauth (taken from http://twitchapps.com/tmi/)
+     */
     public void login(String user, String oauth){
         if (canSend()){
             writer.println("PASS " + oauth);
@@ -74,30 +89,24 @@ public class TwitchIRC {
         }
     }
     
+    /**
+     * IRC join command (will send you every action on the chat)
+     * @param channel
+     */
     public void join(String channel){
         if (canSend())
             writer.println("JOIN #" + channel);
     }
     
+    /**
+     * IRC privmsg command (sends a message to the server)
+     * @param channel - the channel to direct the message
+     * @param msg - the message to send
+     */
     public void privmsg(String channel, String msg){
         if (canSend())
             writer.println("PRIVMSG #" + channel + " " + msg);
     }
     
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) throws IOException, InterruptedException {
-        TwitchIRC t = new TwitchIRC();
-        t.connect("199.9.252.26", 6667);
-        t.login("tmrlvi", "oauth:n6wkn1xa290r7g2ge6f0smh5wj61e63");
-        //t.join("twitchplayspokemon");
-        t.privmsg("twitchplayspokemon", "up");
-        t.privmsg("twitchplayspokemon", "down");
-        t.privmsg("twitchplayspokemon", "up");
-        Thread.sleep(5000);
-        t.close();
-        
-    }
     
 }

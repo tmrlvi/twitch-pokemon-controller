@@ -1,11 +1,13 @@
-package twitchirc;
+package twitchirc.queues;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.RandomAccess;
 
+/**
+ * Gives a random command from a list of given commands
+ * @author tmrlvi
+ */
 public class RandomCommands implements CommandQueue {
 	List<String> commands;
 	Random rand;

@@ -1,23 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package twitchirc;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.ArrayList;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
@@ -33,22 +20,28 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
-import javax.swing.border.AbstractBorder;
-import javax.swing.border.Border;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 
+import twitchirc.queues.CommandQueue;
+import twitchirc.queues.DirectCommands;
+import twitchirc.queues.ModeCommand;
+import twitchirc.queues.RandomCommands;
+
 /**
- *
+ * A GUI class for controlling the TwitchPlaysPokemon
  * @author tmrlvi
  */
 public class TwitchPokemonGui extends JFrame{
-	private static final int LINE_COUNT_MAX = 100;
+	public static final int LINE_COUNT_MAX = 100;
+	public static final int TIMER_TICKS = 1000;
+	public static final int TIMER_WAIT = 30;
+	
+	public static final String HOST = "199.9.252.26";
+	public static final int PORT = 6667;
+	public static final String CHANNEL = "twitchplayspokemon";
 
+	// The classes that are responsible for the real work
 	TwitchIRC irc;
 	CommandQueue commandQueue;
 	
@@ -81,24 +74,45 @@ public class TwitchPokemonGui extends JFrame{
         initUI();
         bindActions();
         radioRandom.doClick();
-        //commandQueue =  new RandomCommands(); 
-        user.setText("tmrlvi");
-        oauth.setText("oauth:n6wkn1xa290r7g2ge6f0smh5wj61e63");
-        
+        addLine("Welcome to the Auto Controller!");
+        addLine("In order to use, you must have a twitch account.");
+        addLine("Login is via the IRC chat, so you need oauth instead of password.");
+        addLine("The oauth give access to the chat only.");
+        addLine("");
+        addLine("Get you oauth from : http://twitchapps.com/tmi/");
     }
 
+    // Creates the controllers, and orders them in the main panel
 	private void initUI(){
         setTitle("Pokemon Twitch Auto Controller");
         
         JPanel main = new JPanel();
         main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
         
+        main.add(createLoginPanel());
+        main.add(createConnectionPanel());
+        main.add(createModesPanel());
+        main.add(createTextArea());
+        main.add(Box.createRigidArea(new Dimension(0, 10)));
+        main.add(createButtons());
+        main.add(Box.createRigidArea(new Dimension(0, 10)));
+        add(main);
+        
+        pack();
+        setSize(new Dimension(400, 300));
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+	
+	// Creates the login panel
+	private JPanel createLoginPanel(){
         // Username and pass
         JPanel userInfo = new JPanel(); 
         userInfo.setLayout(new BoxLayout(userInfo, BoxLayout.X_AXIS));
         JLabel userLabel = new JLabel("Username:");
         JLabel oauthLabel = new JLabel("Oauth:");
-        user = new JTextField(255);
+        user = new JTextField(50);
         oauth = new JTextField(255);     
         user.setMaximumSize(user.getPreferredSize());
         oauth.setMaximumSize(oauth.getPreferredSize());
@@ -106,14 +120,17 @@ public class TwitchPokemonGui extends JFrame{
         userInfo.add(user);
         userInfo.add(oauthLabel);
         userInfo.add(oauth);
-        main.add(userInfo);
-        
-        // Start, stop and progressbar
+        return userInfo;
+	}
+	
+	// Creates the connection controller panel
+	private JPanel createConnectionPanel(){
+		// Start, stop and progressbar
         JPanel runStatus = new JPanel();
         runStatus.setLayout(new BoxLayout(runStatus, BoxLayout.X_AXIS));
         progress = new JProgressBar();
-        progress.setMaximum(30);
-        progress.setValue(30);
+        progress.setMaximum(TIMER_WAIT);
+        progress.setValue(TIMER_WAIT);
         start = new JButton("Start");
         stop = new JButton("Stop");
         progress.setMaximumSize(new Dimension(Integer.MAX_VALUE, start.getPreferredSize().height));
@@ -121,8 +138,11 @@ public class TwitchPokemonGui extends JFrame{
         runStatus.add(start);
         runStatus.add(stop);
         stop.setEnabled(false);
-        main.add(runStatus);
-        
+        return runStatus;
+	}
+	
+	// Creates the connection modes panel
+	private JPanel createModesPanel(){
         // Play modes
         JPanel playModes = new JPanel();
         playModes.setLayout(new BoxLayout(playModes, BoxLayout.X_AXIS));
@@ -136,34 +156,21 @@ public class TwitchPokemonGui extends JFrame{
         playModes.add(radioRandom);
         playModes.add(radioDirect);
         playModes.add(radioAnarchy);
-        main.add(playModes);
-        
-                
+        return playModes;
+	}
+	
+	// Creates the connection modes panel
+	private JScrollPane createTextArea(){
         // Text aread
         JScrollPane pane = new JScrollPane();
         area = new JTextArea();
         DefaultCaret caret = (DefaultCaret)area.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         pane.getViewport().add(area);
-        main.add(pane);
-        main.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Buttons
-        JPanel panelButtons = createButtons();
-        main.add(panelButtons);
-        main.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        
-        add(main);
-        
-        pack();
-        setSize(new Dimension(400, 300));
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setVisible(true);
-        System.out.println(radioDirect.getSize());
-    }
+        return pane;
+	}
     
+	// Creates the buttons, displays them like gameboy
     private JPanel createButtons(){
         // Buttons
         JPanel panelButtons = new JPanel();
@@ -207,21 +214,23 @@ public class TwitchPokemonGui extends JFrame{
         panelButtons.add(Box.createRigidArea(new Dimension(20, 0)));
         
         // A & B Buttons
-        JPanel panelButtonsA = new JPanel();
-        panelButtonsA.setLayout(new BoxLayout(panelButtonsA, BoxLayout.Y_AXIS));
-        aButton = new JToggleButton("A");
-        aButton.setActionCommand("a");
-        panelButtonsA.add(Box.createRigidArea(new Dimension(0, 25)));
-        panelButtonsA.add(aButton);
-        
         JPanel panelButtonsB = new JPanel();
         panelButtonsB.setLayout(new BoxLayout(panelButtonsB, BoxLayout.Y_AXIS));
         bButton = new JToggleButton("B");
         bButton.setActionCommand("b");
-        panelButtonsB.add(bButton);
+        // Add some space above
         panelButtonsB.add(Box.createRigidArea(new Dimension(0, 25)));
-        panelButtons.add(panelButtonsA);
+        panelButtonsB.add(bButton);
+        
+        JPanel panelButtonsA = new JPanel();
+        panelButtonsA.setLayout(new BoxLayout(panelButtonsA, BoxLayout.Y_AXIS));
+        aButton = new JToggleButton("A");
+        aButton.setActionCommand("a");
+        panelButtonsA.add(aButton);
+     // Add some space below
+        panelButtonsA.add(Box.createRigidArea(new Dimension(0, 25)));
         panelButtons.add(panelButtonsB);
+        panelButtons.add(panelButtonsA);
         return panelButtons;
     }
     
@@ -247,14 +256,18 @@ public class TwitchPokemonGui extends JFrame{
     	bButton.setEnabled(enable);
     }
     
+    // Binds all the actions
     private void bindActions() {
+    	// Start connection
 		start.addActionListener(new ActionListener() {			
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
+			public void actionPerformed(ActionEvent event) {
+				area.setText("");
 				start.setEnabled(false);
 				stop.setEnabled(true);
 				try {
 					irc = new TwitchIRC();
+					// Connect the printer to the area
 					irc.setPrinter(new ThreadedPrinting() {			
 						@Override
 						public void handleLine(String line) {
@@ -267,33 +280,33 @@ public class TwitchPokemonGui extends JFrame{
 							addLine(ex.getMessage());
 						}
 					});
-					irc.connect("199.9.252.26", 6667);
+					irc.connect(HOST, PORT);
 					irc.login(user.getText(), oauth.getText());
-					irc.join("twitchplayspokemon");
+					irc.join(CHANNEL);
 					startCommands();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					addLine("" + e);
+					addLine("Error: " + e);
 				}
 			}
 		});
 		
+		// Stops the connection
 		stop.addActionListener(new ActionListener() {			
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
+			public void actionPerformed(ActionEvent event) {
 				stop.setEnabled(false);
 				start.setEnabled(true);
 				commandsTimer.stop();
-				progress.setValue(30);
+				progress.setValue(TIMER_WAIT);
 				try {
 					irc.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					addLine("" + e);
+					addLine("Error: " + e);
 				}
 			}
 		});
 		
+		// Queue methods
 		radioRandom.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -317,13 +330,14 @@ public class TwitchPokemonGui extends JFrame{
 		radioAnarchy.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				commandQueue = new AnarchyCommand();
+				commandQueue = new ModeCommand();
 				resetButtons();
 				enableButtons(false);
 				directToggle = true;
 			}
 		});
 		
+		// binding buttons
 		ActionListener buttonListener = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -347,15 +361,16 @@ public class TwitchPokemonGui extends JFrame{
 		
 	}
     
+    // Sends the command after every TIMER_WAIT number of TIMER_TICKS milliseconds
     private void startCommands(){
-    	commandsTimer = new Timer(1000, new ActionListener() {	
+    	commandsTimer = new Timer(TIMER_TICKS, new ActionListener() {	
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				if (progress.getValue() == 30){
+				if (progress.getValue() >= TIMER_WAIT){
 					String command = commandQueue.get();
 					if (command != null){
 						synchronized (irc){
-							irc.privmsg("twitchplayspokemon", command);
+							irc.privmsg(CHANNEL, command);
 							progress.setValue(0);
 						}
 					}
@@ -366,7 +381,7 @@ public class TwitchPokemonGui extends JFrame{
     	commandsTimer.start();
     }
     
-    
+    // Adds a line in the text area
     private void addLine(String line){
     	if (area.getLineCount() > LINE_COUNT_MAX){
 				try {
@@ -381,16 +396,14 @@ public class TwitchPokemonGui extends JFrame{
     }
 
     /**
+     * Starts the app in a new thread (So it won't be blocking)
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here
         SwingUtilities.invokeLater(new Runnable(){
-
             @Override
             public void run() {
-                TwitchPokemonGui t = new TwitchPokemonGui();
-                t.setVisible(true);
+                new TwitchPokemonGui();
             }
           
         });
