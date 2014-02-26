@@ -23,13 +23,23 @@ public class TwitchIRC {
     ThreadedPrinting printer;
     ArrayList<Long> commands_ts;
     
-    public TwitchIRC(String addr, int port) throws IOException{
+    public TwitchIRC() {
         commands_ts = new ArrayList<Long>();
-        socket = new Socket(addr, port);
-        writer = new PrintWriter(socket.getOutputStream(), true);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        printer = new ThreadedPrinting(reader);
-        printer.start();
+        
+    }
+    
+    public void setPrinter(ThreadedPrinting printer){
+    	this.printer = printer;
+    }
+    
+    public void connect(String addr, int port) throws IOException {
+    	if (printer == null)
+    		throw new IOException("Output is not set. (Did you call setPrinter?)");
+    	socket = new Socket(addr, port);
+    	writer = new PrintWriter(socket.getOutputStream(), true);
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    	printer.setReader(reader);
+    	printer.start();
     }
     
     public void close() throws IOException{
@@ -44,9 +54,11 @@ public class TwitchIRC {
     
     private boolean canSend(){
         long cur_time = System.currentTimeMillis();
+        ArrayList<Long> new_commands = new ArrayList<Long>();
         for (long ts : commands_ts)
-            if (cur_time - ts > 30*1000)
-                commands_ts.remove(ts);
+            if (cur_time - ts < 30*1000)
+            	new_commands.add(ts);
+        commands_ts = new_commands;
         if (commands_ts.size() > 15){
             System.err.println("Too many messages! wait...");
             return false;
@@ -76,7 +88,8 @@ public class TwitchIRC {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        TwitchIRC t = new TwitchIRC("199.9.252.26", 6667);
+        TwitchIRC t = new TwitchIRC();
+        t.connect("199.9.252.26", 6667);
         t.login("tmrlvi", "oauth:n6wkn1xa290r7g2ge6f0smh5wj61e63");
         //t.join("twitchplayspokemon");
         t.privmsg("twitchplayspokemon", "up");

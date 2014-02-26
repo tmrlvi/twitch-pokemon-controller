@@ -13,12 +13,12 @@ import java.io.IOException;
  *
  * @author tmrlvi
  */
-public class ThreadedPrinting extends Thread {
+public abstract class ThreadedPrinting extends Thread {
     final static int READER_WAIT_TIME = 2000;
     BufferedReader reader;
     
-    public ThreadedPrinting(BufferedReader reader){
-        this.reader = reader;
+    public void setReader(BufferedReader reader){
+    	this.reader = reader;
     }
     
     @Override
@@ -37,12 +37,7 @@ public class ThreadedPrinting extends Thread {
         }
     }
     
-    public void handleLine(String line){
-        System.out.println(line);
-    }
-    
-    public void handleError(Exception ex){
-        System.err.println(ex.getMessage());
-    }
+    public abstract void handleLine(String line);
+    public abstract void handleError(Exception ex);
     
 }

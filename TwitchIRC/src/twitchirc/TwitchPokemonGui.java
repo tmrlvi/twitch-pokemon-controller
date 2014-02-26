@@ -12,6 +12,10 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -28,20 +32,62 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultCaret;
 
 /**
  *
  * @author tmrlvi
  */
-public class TwitchPokemonGui extends JFrame {
+public class TwitchPokemonGui extends JFrame{
+	private static final int LINE_COUNT_MAX = 100;
+
+	TwitchIRC irc;
+	CommandQueue commandQueue;
+	
+	JTextField user;
+	JTextField oauth;
+	
+	Timer commandsTimer;
+	JProgressBar progress;
+	JTextArea area;
+	
+	boolean directToggle;
+	JRadioButton radioRandom;
+	JRadioButton radioDirect;
+	JRadioButton radioAnarchy;
+	JButton start;
+	JButton stop;
+	
+	JToggleButton upButton;
+	JToggleButton leftButton;
+	JToggleButton rightButton;
+	JToggleButton downButton;
+	
+	JToggleButton aButton;
+	JToggleButton bButton;
+	
+	JToggleButton buttonStart;
+	JToggleButton buttonSelect;
     
     public TwitchPokemonGui(){
         initUI();
+        bindActions();
+        radioRandom.doClick();
+        //commandQueue =  new RandomCommands(); 
+        user.setText("tmrlvi");
+        oauth.setText("oauth:n6wkn1xa290r7g2ge6f0smh5wj61e63");
+        
     }
-    
-    public void initUI(){
+
+	private void initUI(){
         setTitle("Pokemon Twitch Auto Controller");
         
         JPanel main = new JPanel();
@@ -52,12 +98,10 @@ public class TwitchPokemonGui extends JFrame {
         userInfo.setLayout(new BoxLayout(userInfo, BoxLayout.X_AXIS));
         JLabel userLabel = new JLabel("Username:");
         JLabel oauthLabel = new JLabel("Oauth:");
-        JTextField user = new JTextField(255);
-        JTextField oauth = new JTextField(255);
-        
+        user = new JTextField(255);
+        oauth = new JTextField(255);     
         user.setMaximumSize(user.getPreferredSize());
         oauth.setMaximumSize(oauth.getPreferredSize());
-        
         userInfo.add(userLabel);
         userInfo.add(user);
         userInfo.add(oauthLabel);
@@ -67,30 +111,39 @@ public class TwitchPokemonGui extends JFrame {
         // Start, stop and progressbar
         JPanel runStatus = new JPanel();
         runStatus.setLayout(new BoxLayout(runStatus, BoxLayout.X_AXIS));
-        JProgressBar progress = new JProgressBar();
-        JButton start = new JButton("Start");
-        JButton stop = new JButton("Stop");
+        progress = new JProgressBar();
+        progress.setMaximum(30);
+        progress.setValue(30);
+        start = new JButton("Start");
+        stop = new JButton("Stop");
         progress.setMaximumSize(new Dimension(Integer.MAX_VALUE, start.getPreferredSize().height));
         runStatus.add(progress);
         runStatus.add(start);
         runStatus.add(stop);
+        stop.setEnabled(false);
         main.add(runStatus);
         
         // Play modes
         JPanel playModes = new JPanel();
         playModes.setLayout(new BoxLayout(playModes, BoxLayout.X_AXIS));
-        JRadioButton radioRandom = new JRadioButton("random");
-        JRadioButton radioDirect = new JRadioButton("direct");
+        radioRandom = new JRadioButton("random");
+        radioDirect = new JRadioButton("direct");
+        radioAnarchy = new JRadioButton("vote anarchy");
         ButtonGroup group = new ButtonGroup();
         group.add(radioRandom);
         group.add(radioDirect);
+        group.add(radioAnarchy);
         playModes.add(radioRandom);
         playModes.add(radioDirect);
+        playModes.add(radioAnarchy);
         main.add(playModes);
+        
                 
         // Text aread
         JScrollPane pane = new JScrollPane();
-        JTextArea area = new JTextArea();
+        area = new JTextArea();
+        DefaultCaret caret = (DefaultCaret)area.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         pane.getViewport().add(area);
         main.add(pane);
         main.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -119,19 +172,23 @@ public class TwitchPokemonGui extends JFrame {
         // Move Buttons
         JPanel panelButtonsLeft = new JPanel();
         panelButtonsLeft.setLayout(new BoxLayout(panelButtonsLeft, BoxLayout.Y_AXIS));
-        JToggleButton leftButton = new JToggleButton("<");
+        leftButton = new JToggleButton("<");
+        leftButton.setActionCommand("left");
         panelButtonsLeft.add(leftButton);
         
         JPanel panelButtonsUpDown = new JPanel();
         panelButtonsUpDown.setLayout(new BoxLayout(panelButtonsUpDown, BoxLayout.Y_AXIS));
-        JToggleButton upButton = new JToggleButton("^");
-        JToggleButton downButton = new JToggleButton("v");
+        upButton = new JToggleButton("^");
+        downButton = new JToggleButton("v");
+        upButton.setActionCommand("up");
+        downButton.setActionCommand("down");
         panelButtonsUpDown.add(upButton);
         panelButtonsUpDown.add(downButton);
         
         JPanel panelButtonsRight = new JPanel();
         panelButtonsRight.setLayout(new BoxLayout(panelButtonsRight, BoxLayout.Y_AXIS));
-        JToggleButton rightButton = new JToggleButton(">");
+        rightButton = new JToggleButton(">");
+        rightButton.setActionCommand("right");
         panelButtonsRight.add(rightButton);
         
         panelButtons.add(panelButtonsLeft);
@@ -140,8 +197,10 @@ public class TwitchPokemonGui extends JFrame {
         panelButtons.add(Box.createRigidArea(new Dimension(20, 0)));
         
         // Select & Start Buttons
-        JToggleButton buttonSelect = new JToggleButton("select");
-        JToggleButton buttonStart = new JToggleButton("start");
+        buttonSelect = new JToggleButton("select");
+        buttonStart = new JToggleButton("start");
+        buttonSelect.setActionCommand("select");
+        buttonStart.setActionCommand("start");
         panelButtons.add(buttonSelect);
         panelButtons.add(Box.createRigidArea(new Dimension(5, 0)));
         panelButtons.add(buttonStart);
@@ -150,30 +209,175 @@ public class TwitchPokemonGui extends JFrame {
         // A & B Buttons
         JPanel panelButtonsA = new JPanel();
         panelButtonsA.setLayout(new BoxLayout(panelButtonsA, BoxLayout.Y_AXIS));
-        JToggleButton aButton = new JToggleButton("A");
+        aButton = new JToggleButton("A");
+        aButton.setActionCommand("a");
         panelButtonsA.add(Box.createRigidArea(new Dimension(0, 25)));
         panelButtonsA.add(aButton);
-        /*aButton.setMinimumSize(new Dimension(30, 30));
-        aButton.setPreferredSize(new Dimension(30, 30));
-        aButton.setMaximumSize(new Dimension(30, 30));
-        aButton.setBorder(new AbstractBorder() {
-        	@Override
-        	public void paintBorder(Component c, Graphics g, int x, int y,
-        			int width, int height) {
-        		// TODO Auto-generated method stub
-        		//super.paintBorder(c, g, x, y, width, height);
-        		//g.drawRoundRect(1, 1, width-1, height-1, 1, 1);
-        		g.drawOval(x, y, width - 1, height - 1);
-        	}
-		});*/
+        
         JPanel panelButtonsB = new JPanel();
         panelButtonsB.setLayout(new BoxLayout(panelButtonsB, BoxLayout.Y_AXIS));
-        JToggleButton bButton = new JToggleButton("B");
+        bButton = new JToggleButton("B");
+        bButton.setActionCommand("b");
         panelButtonsB.add(bButton);
         panelButtonsB.add(Box.createRigidArea(new Dimension(0, 25)));
         panelButtons.add(panelButtonsA);
         panelButtons.add(panelButtonsB);
         return panelButtons;
+    }
+    
+    private void resetButtons(){
+    	upButton.setSelected(false);
+    	downButton.setSelected(false);
+    	leftButton.setSelected(false);
+    	rightButton.setSelected(false);
+    	buttonSelect.setSelected(false);
+    	buttonStart.setSelected(false);
+    	aButton.setSelected(false);
+    	bButton.setSelected(false);
+    }
+    
+    private void enableButtons(boolean enable){
+    	upButton.setEnabled(enable);
+    	downButton.setEnabled(enable);
+    	leftButton.setEnabled(enable);
+    	rightButton.setEnabled(enable);
+    	buttonSelect.setEnabled(enable);
+    	buttonStart.setEnabled(enable);
+    	aButton.setEnabled(enable);
+    	bButton.setEnabled(enable);
+    }
+    
+    private void bindActions() {
+		start.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				start.setEnabled(false);
+				stop.setEnabled(true);
+				try {
+					irc = new TwitchIRC();
+					irc.setPrinter(new ThreadedPrinting() {			
+						@Override
+						public void handleLine(String line) {
+							if (line.contains(user.getText()))
+								addLine(line);
+						}
+						
+						@Override
+						public void handleError(Exception ex) {
+							addLine(ex.getMessage());
+						}
+					});
+					irc.connect("199.9.252.26", 6667);
+					irc.login(user.getText(), oauth.getText());
+					irc.join("twitchplayspokemon");
+					startCommands();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					addLine("" + e);
+				}
+			}
+		});
+		
+		stop.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				stop.setEnabled(false);
+				start.setEnabled(true);
+				commandsTimer.stop();
+				progress.setValue(30);
+				try {
+					irc.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					addLine("" + e);
+				}
+			}
+		});
+		
+		radioRandom.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				commandQueue = new RandomCommands();
+				resetButtons();
+				enableButtons(true);
+				directToggle = false;
+			}
+		});
+		
+		radioDirect.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				commandQueue = new DirectCommands();
+				resetButtons();
+				enableButtons(true);
+				directToggle = true;
+			}
+		});
+		
+		radioAnarchy.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				commandQueue = new AnarchyCommand();
+				resetButtons();
+				enableButtons(false);
+				directToggle = true;
+			}
+		});
+		
+		ActionListener buttonListener = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				JToggleButton button = (JToggleButton) event.getSource();
+				if (button.isSelected()){
+					commandQueue.add(event.getActionCommand());
+					if (directToggle)
+						button.setSelected(false);
+				}
+			}
+		};
+		
+		upButton.addActionListener(buttonListener);
+		downButton.addActionListener(buttonListener);
+		leftButton.addActionListener(buttonListener);
+		rightButton.addActionListener(buttonListener);
+		aButton.addActionListener(buttonListener);
+		bButton.addActionListener(buttonListener);
+		buttonSelect.addActionListener(buttonListener);
+		buttonStart.addActionListener(buttonListener);
+		
+	}
+    
+    private void startCommands(){
+    	commandsTimer = new Timer(1000, new ActionListener() {	
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				if (progress.getValue() == 30){
+					String command = commandQueue.get();
+					if (command != null){
+						synchronized (irc){
+							irc.privmsg("twitchplayspokemon", command);
+							progress.setValue(0);
+						}
+					}
+				} else
+					progress.setValue(progress.getValue()+1);
+			}
+		});
+    	commandsTimer.start();
+    }
+    
+    
+    private void addLine(String line){
+    	if (area.getLineCount() > LINE_COUNT_MAX){
+				try {
+					int start = area.getLineStartOffset(0);
+					int end = area.getLineEndOffset(0);
+	    			area.replaceRange("", start, end);
+				} catch (BadLocationException e) {
+					area.setText("");
+				}
+    	}
+    	area.append(line + "\r\n");
     }
 
     /**
@@ -191,5 +395,5 @@ public class TwitchPokemonGui extends JFrame {
           
         });
     }
-    
+
 }
