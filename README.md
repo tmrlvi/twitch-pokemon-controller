@@ -15,3 +15,5 @@ to access the chat)
 
 The exe compiled with JSmooth - http://jsmooth.sourceforge.net/
 Fill free to download and change whatever you want, or even to commit.
+
+![Conroller Image](https://raw.github.com/tmrlvi/twitch-pokemon-controller/master/controller.png)
