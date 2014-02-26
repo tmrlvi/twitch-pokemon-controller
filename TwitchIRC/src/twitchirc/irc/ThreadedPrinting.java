@@ -1,4 +1,4 @@
-package twitchirc;
+package twitchirc.irc;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -23,6 +23,8 @@ import javax.swing.Timer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 
+import twitchirc.irc.ThreadedPrinting;
+import twitchirc.irc.TwitchIRC;
 import twitchirc.queues.CommandQueue;
 import twitchirc.queues.DirectCommands;
 import twitchirc.queues.ModeCommand;
