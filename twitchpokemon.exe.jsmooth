@@ -16,14 +16,14 @@
 <maximumMemoryHeap>-1</maximumMemoryHeap>
 <maximumVersion></maximumVersion>
 <minimumVersion></minimumVersion>
-<skeletonName>Windowed Wrapper</skeletonName>
+<skeletonName>Autodownload Wrapper</skeletonName>
 <skeletonProperties>
 <key>Message</key>
 <value>Java has not been found on your computer. Do you want to download it?</value>
 </skeletonProperties>
 <skeletonProperties>
-<key>URL</key>
-<value>http://www.java.com</value>
+<key>DownloadURL</key>
+<value>http://java.sun.com/update/1.6.0/jinstall-6-windows-i586.cab</value>
 </skeletonProperties>
 <skeletonProperties>
 <key>SingleProcess</key>
