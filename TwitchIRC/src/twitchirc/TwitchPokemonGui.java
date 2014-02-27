@@ -264,6 +264,10 @@ public class TwitchPokemonGui extends JFrame{
 		start.addActionListener(new ActionListener() {			
 			@Override
 			public void actionPerformed(ActionEvent event) {
+				if (user.getText().length() == 0 || oauth.getText().length() == 0){
+					addLine("Error: username or oauth are missing");
+					return;
+				}
 				area.setText("");
 				start.setEnabled(false);
 				stop.setEnabled(true);
@@ -347,6 +351,8 @@ public class TwitchPokemonGui extends JFrame{
 					commandQueue.add(event.getActionCommand());
 					if (directToggle)
 						button.setSelected(false);
+				} else {
+					commandQueue.remove(event.getActionCommand());
 				}
 			}
 		};

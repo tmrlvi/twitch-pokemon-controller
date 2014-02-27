@@ -8,7 +8,7 @@ import java.io.IOException;
  * @author tmrlvi
  */
 public abstract class ThreadedPrinting extends Thread {
-    final static int READER_WAIT_TIME = 2000;
+    final static int READER_WAIT_TIME = 100;
     BufferedReader reader;
     
     public void setReader(BufferedReader reader){
