@@ -3,6 +3,8 @@ Twitch Plays Pokemon Controller
 
 *because random is not random enough*
 
+[Download the controller (wrapped exe)](https://github.com/tmrlvi/twitch-pokemon-controller/raw/master/twitchpokemon.exe)
+
 Welcome to the TPP Controller. The controller is implemented in java and
 is compiled to an .exe file (or wrapped to .sh file, if you are a linux user).
 
