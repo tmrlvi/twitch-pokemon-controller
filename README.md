@@ -16,6 +16,6 @@ get an oauth token from http://twitchapps.com/tmi/. (The oauth can be only used
 to access the chat)
 
 The exe compiled with JSmooth - http://jsmooth.sourceforge.net/
-Fill free to download and change whatever you want, or even to commit.
+Feel free to download and change whatever you want.
 
 ![Conroller Image](https://raw.github.com/tmrlvi/twitch-pokemon-controller/master/controller.png)
